@@ -20,6 +20,10 @@ export const firebaseConfig = {
 //    "time" = segundos para responder.
 export const QUIZ = {
   title: "Quiz Farmaonline",
+  // Avance automático: segundos que se muestra la respuesta correcta
+  // y la pantalla de cada ronda antes de pasar solo a lo siguiente.
+  revealSeconds: 5,
+  roundSeconds: 3,
   rounds: [
     {
       name: "Ronda 1",
@@ -27,25 +31,25 @@ export const QUIZ = {
       questions: [
         {
           text: "¿En qué año comenzó a operar Farmaonline?",
-          options: ["1998", "2019", "2007"],
-          correct: 1,
-          time: 20
+          options: ["1998", "2007", "2019"],
+          correct: 2,
+          time: 15
         },
         {
           text: "¿En cuántas farmacias está presente?",
           options: ["+1.200", "+3.000", "+5.600"],
           correct: 1,
-          time: 20
+          time: 15
         },
         {
           text: "¿Cómo se eligió el color institucional actual?",
           options: [
-            "Cami y Delfi estaban de shopping y vieron un trajecito color oliva, les gustó el color y lo implementaron.",
             "Delfi tuvo que interpretar a un personaje que, mediante un hechizo, quedaba teñido de verde para siempre. Le gustó tanto que lo convirtió en el color de la marca.",
-            "El frente de la casa de la infancia de Cami era verde oliva y, cuando hubo que repensar los colores de marca, ni lo dudó y lo convirtió en el nuevo color."
+            "El frente de la casa de la infancia de Cami era verde oliva y, cuando hubo que repensar los colores de marca, ni lo dudó y lo convirtió en el nuevo color.",
+            "Cami y Delfi estaban de shopping y vieron un trajecito color oliva, les gustó el color y lo implementaron."
           ],
-          correct: 0,
-          time: 35
+          correct: 2,
+          time: 15
         }
       ]
     },
@@ -55,15 +59,15 @@ export const QUIZ = {
       questions: [
         {
           text: "¿Qué formato de venta impulsa el ticket promedio?",
-          options: ["Suscripción", "Combos", "Venta flash"],
-          correct: 1,
-          time: 20
+          options: ["Combos", "Suscripción", "Venta flash"],
+          correct: 0,
+          time: 15
         },
         {
           text: "¿Qué porcentaje de personas recuerda espontáneamente a Farmaonline?",
-          options: ["8%", "35%", "65%"],
-          correct: 0,
-          time: 20
+          options: ["35%", "8%", "65%"],
+          correct: 1,
+          time: 15
         }
       ]
     },
@@ -73,16 +77,16 @@ export const QUIZ = {
       questions: [
         {
           text: "Antes del color verde, ¿qué color institucional tenía Farmaonline?",
-          options: ["Turquesa", "Coral", "Lila"],
-          correct: 1,
-          time: 20
+          options: ["Turquesa", "Lila", "Coral"],
+          correct: 2,
+          time: 15
         },
         {
           text: "¿Cuál es la O correcta?",
-          images: ["o-a.png", "o-b.png", "o-c.png"],
+          images: ["o-b.png", "o-a.png", "o-c.png"],
           options: ["A", "B", "C"],
-          correct: 1,
-          time: 25
+          correct: 0,
+          time: 15
         }
       ]
     }
