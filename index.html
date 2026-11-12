@@ -65,6 +65,13 @@
   .stats div { border: 1px solid var(--line); border-radius: 16px; padding: 14px; text-align: left; }
   .stats b { display: block; font-size: 26px; font-weight: 800; }
   .stats span { font-size: 13px; color: var(--muted); }
+  .result { background: var(--brand-2); border: 1px solid var(--line); border-radius: 28px; padding: 36px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .result .emo { font-size: 84px; line-height: 1; }
+  .result .num { font-size: 52px; font-weight: 800; letter-spacing: -.02em; margin-top: 18px; }
+  .result .cap, .result .lt { text-transform: uppercase; font-weight: 800; letter-spacing: .02em; }
+  .result .cap { font-size: 14px; margin-top: 2px; }
+  .result .lt { font-size: 22px; margin-top: 28px; line-height: 1.15; }
+  .result .ls { margin-top: 8px; color: var(--muted); line-height: 1.4; max-width: 26ch; }
   .dots { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
   .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--light); opacity: .25; animation: blink 1.2s infinite; }
   .dots i:nth-child(2) { animation-delay: .2s; } .dots i:nth-child(3) { animation-delay: .4s; }
@@ -101,11 +108,11 @@ db.on("scores/" + pid, v => { myScore = v; render(true); });
 
 function render(scoreOnly) {
   $("#who").textContent = me ? me.name : QUIZ.title;
-  $("#myscore").textContent = myScore ? `${myScore.score} pts` : "";
-  if (!state) { app.innerHTML = waitScreen("Conectando…", ""); return; }
+  $("#myscore").textContent = "";
+  if (!state) { lastKey = ""; app.innerHTML = waitScreen("El juego todavía no abrió", "Esta pantalla se actualiza sola cuando empiece."); return; }
   if (!me) { if (lastKey !== "join") { lastKey = "join"; renderJoin(); } return; }
 
-  const key = state.phase + ":" + state.q + ":" + (state.phase === "reveal" || state.phase === "ranking" || state.phase === "final" ? (myScore?.lastQ ?? "") + (myScore?.rank ?? "") : "");
+  const key = state.phase + ":" + state.q + ":" + (state.phase === "reveal" || state.phase === "final" ? String(myScore?.lastQ ?? "") : "");
   if (key === lastKey) return;
   if (scoreOnly && state.phase === "question") return;
   lastKey = key;
@@ -121,12 +128,6 @@ function render(scoreOnly) {
     }
     case "question": renderQuestion(Q); break;
     case "reveal": renderReveal(Q); break;
-    case "ranking":
-      app.innerHTML = `<div class="center rise">
-        <div class="eyebrow">Ranking</div>
-        ${myScore?.rank ? `<div class="big">${myScore.rank}°</div><p class="muted">puesto · ${myScore.score} pts</p>` : `<p class="muted">Sumate en la próxima pregunta.</p>`}
-        <p class="muted" style="margin-top:12px">Mirá la pantalla</p><div class="dots"><i></i><i></i><i></i></div></div>`;
-      break;
     case "final": renderFinal(); break;
   }
 }
@@ -207,32 +208,28 @@ function renderReveal(Q) {
   const correctTxt = Q.images ? `Opción ${LETTERS[Q.correct]}` : Q.options[Q.correct];
   let head;
   if (!s) head = `<div class="mark no">…</div><h2>Calculando…</h2>`;
-  else if (s.lastOk) head = `<div class="mark ok">✓</div><h2>¡Correcto!</h2><span class="pill">+${s.lastPts} pts</span>`;
+  else if (s.lastOk) head = `<div class="mark ok">✓</div><h2>¡Correcto!</h2>`;
   else if (!s.answered) head = `<div class="mark no">–</div><h2>No llegaste a responder</h2>`;
   else head = `<div class="mark no">✕</div><h2>No era esa</h2>`;
   app.innerHTML = `
     <div class="center rise">
       ${head}
       ${s && !s.lastOk ? `<p class="muted">La correcta era:<br><b style="color:var(--light)">${esc(correctTxt)}</b></p>` : ""}
-      ${s ? `<p class="muted" style="margin-top:10px">Vas ${s.rank}° · ${s.score} pts</p>` : ""}
+      <p class="muted" style="margin-top:10px">Mirá la pantalla</p>
     </div>`;
 }
 
 function renderFinal() {
-  const s = myScore || { score: 0, correct: 0 };
-  const lv = levelFor(s.correct || 0);
+  const c = myScore?.correct || 0;
+  const lv = levelFor(c);
   app.innerHTML = `
-    <div class="center rise" style="gap:18px">
-      <div class="eyebrow">Resultado final</div>
-      ${s.rank ? `<div class="big">${s.rank}°</div>` : ""}
-      <div class="stats">
-        <div><b>${s.score}</b><span>puntos</span></div>
-        <div><b>${s.correct || 0}/${TOTAL}</b><span>correctas</span></div>
-      </div>
-      <div class="card">
-        <div class="eyebrow" style="margin-bottom:10px">Tu nivel de conocimiento de la marca</div>
-        <div class="t">${esc(lv.title)}</div>
-        <div class="s">${esc(lv.text)}</div>
+    <div class="center rise">
+      <div class="result">
+        <div class="emo">${lv.emoji || ""}</div>
+        <div class="num">${c} de ${TOTAL}</div>
+        <div class="cap">Respuestas correctas</div>
+        <div class="lt">${esc(lv.title)}</div>
+        <div class="ls">${esc(lv.text)}</div>
       </div>
       <p class="muted">¡Gracias por jugar!</p>
     </div>`;

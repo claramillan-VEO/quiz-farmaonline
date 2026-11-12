@@ -79,7 +79,7 @@ export const QUIZ = {
         },
         {
           text: "¿Cuál es la O correcta?",
-          images: ["img/o-a.png", "img/o-b.png", "img/o-c.png"],
+          images: ["o-a.png", "o-b.png", "o-c.png"],
           options: ["A", "B", "C"],
           correct: 1,
           time: 25
@@ -89,8 +89,8 @@ export const QUIZ = {
   ],
   // Resultado final según cantidad de respuestas correctas.
   levels: [
-    { min: 0, max: 2, title: "Necesitás el brandbook.", text: "Tranquilo/a, ya viene." },
-    { min: 3, max: 5, title: "Vas por buen camino.", text: "El brandbook te va a ayudar a completar lo que falta." },
-    { min: 6, max: 7, title: "Podrías haberlo escrito vos.", text: "Te esperamos en la próxima reunión de VEO." }
+    { min: 0, max: 2, emoji: "😱", title: "Necesitás el brandbook", text: "Tranquilo, ya viene." },
+    { min: 3, max: 5, emoji: "🤗", title: "Vas por buen camino", text: "El brandbook te va a ayudar a completar lo que falta." },
+    { min: 6, max: 7, emoji: "😎", title: "Podrías haberlo escrito", text: "Te esperamos en la próxima reunión con Veo." }
   ]
 };
