@@ -99,6 +99,30 @@
 <script type="module">
 import { db, QUIZ, QUESTIONS, TOTAL, LETTERS, esc, demoBanner } from "./core.js";
 
+// Temporizadores que siguen corriendo aunque la pestaña quede en segundo plano
+// (el navegador frena los temporizadores normales de las pestañas ocultas).
+const { setTimeout, setInterval, clearTimeout, clearInterval } = (() => {
+  const native = { setTimeout: window.setTimeout.bind(window), setInterval: window.setInterval.bind(window), clearTimeout: window.clearTimeout.bind(window), clearInterval: window.clearInterval.bind(window) };
+  let worker;
+  try { worker = new Worker(URL.createObjectURL(new Blob(["setInterval(() => postMessage(0), 100)"], { type: "text/javascript" }))); }
+  catch { return native; }
+  const jobs = new Map(); let seq = 0;
+  worker.onmessage = () => {
+    const now = Date.now();
+    for (const [id, j] of [...jobs]) {
+      if (now < j.at || !jobs.has(id)) continue;
+      if (j.every) j.at = now + j.every; else jobs.delete(id);
+      try { j.fn(); } catch (e) { console.error(e); }
+    }
+  };
+  const clear = id => { jobs.delete(id); };
+  return {
+    setTimeout: (fn, ms = 0) => { const id = ++seq; jobs.set(id, { fn, at: Date.now() + ms }); return id; },
+    setInterval: (fn, ms) => { const id = ++seq; jobs.set(id, { fn, at: Date.now() + ms, every: Math.max(ms, 50) }); return id; },
+    clearTimeout: clear, clearInterval: clear
+  };
+})();
+
 const $ = s => document.querySelector(s);
 const stage = $("#stage"), nextBtn = $("#next");
 $("#brand").textContent = QUIZ.title;
