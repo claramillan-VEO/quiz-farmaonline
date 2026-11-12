@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101828">
+<title>Quiz Farmaonline</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { font-size: 17px; }
+  .bar-top {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 14px 16px; border-bottom: 1px solid var(--line); font-size: 14px;
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+  .bar-top b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .body { flex: 1; display: flex; flex-direction: column; padding: 24px 16px calc(28px + env(safe-area-inset-bottom)); max-width: 520px; width: 100%; margin: 0 auto; }
+  .center { flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; gap: 14px; }
+  h1 { font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+  h2 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+  .big { font-size: 64px; font-weight: 800; line-height: 1; }
+
+  /* Ingreso */
+  .join { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 28px; }
+  .field { display: flex; flex-direction: column; gap: 10px; }
+  .field label { font-size: 14px; color: var(--muted); }
+  .field input {
+    background: var(--brand-2); border: 1.5px solid var(--line); color: var(--light);
+    border-radius: 16px; padding: 18px; font-size: 20px; outline: none; width: 100%;
+  }
+  .field input:focus { border-color: var(--light); }
+  .join .btn { width: 100%; }
+  .err { color: var(--light); font-size: 14px; min-height: 1em; }
+
+  /* Pregunta */
+  .qtop { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .secs { font-weight: 800; font-size: 20px; font-variant-numeric: tabular-nums; border: 1.5px solid var(--line); border-radius: 999px; padding: 4px 14px; }
+  .qtext { font-size: 22px; font-weight: 700; line-height: 1.2; margin: 14px 0 22px; }
+  .answers { display: flex; flex-direction: column; gap: 12px; }
+  .ans {
+    display: flex; align-items: center; gap: 14px; text-align: left;
+    background: var(--brand-2); border: 1.5px solid var(--line); border-radius: 18px;
+    padding: 18px 16px; font-size: 18px; font-weight: 600; line-height: 1.3; min-height: 72px;
+    transition: background .15s, color .15s, opacity .2s, transform .1s;
+  }
+  .ans.long { font-size: 15px; font-weight: 500; }
+  .ans:active { transform: scale(.98); }
+  .ans .letter { font-size: 16px; }
+  .answers.imgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .answers.imgs .ans { flex-direction: column; padding: 8px 8px 12px; gap: 10px; min-height: 0; align-items: center; }
+  .answers.imgs img { border-radius: 12px; width: 100%; aspect-ratio: 1; object-fit: cover; }
+  .ans.picked { background: var(--light); color: var(--brand); border-color: var(--light); }
+  .answers.locked .ans:not(.picked) { opacity: .3; }
+  .answers.locked .ans { pointer-events: none; }
+  .sent { margin-top: 20px; text-align: center; color: var(--muted); }
+
+  .mark { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; font-size: 48px; font-weight: 800; margin: 0 auto 8px; }
+  .mark.ok { background: var(--light); color: var(--brand); }
+  .mark.no { border: 2px solid var(--line); }
+  .pill { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-weight: 600; margin: 0 auto; }
+  .card { background: var(--brand-2); border: 1px solid var(--line); border-radius: 20px; padding: 22px; text-align: left; }
+  .card .t { font-size: 22px; font-weight: 800; line-height: 1.15; }
+  .card .s { margin-top: 8px; color: var(--muted); line-height: 1.4; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stats div { border: 1px solid var(--line); border-radius: 16px; padding: 14px; text-align: left; }
+  .stats b { display: block; font-size: 26px; font-weight: 800; }
+  .stats span { font-size: 13px; color: var(--muted); }
+  .dots { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+  .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--light); opacity: .25; animation: blink 1.2s infinite; }
+  .dots i:nth-child(2) { animation-delay: .2s; } .dots i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 50% { opacity: 1; } }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="bar-top"><b id="who">Quiz Farmaonline</b><span id="myscore" class="muted"></span></div>
+  <main class="body" id="app"></main>
+</div>
+
+<script type="module">
+import { db, DEMO, QUIZ, QUESTIONS, TOTAL, LETTERS, esc, store, levelFor, demoBanner } from "./core.js";
+
+const $ = s => document.querySelector(s);
+const app = $("#app");
+demoBanner();
+
+// En modo demo cada pestaña es un jugador distinto
+const idStore = DEMO
+  ? { get: k => { try { return sessionStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} } }
+  : store;
+const slot = new URLSearchParams(location.search).get("p") || "";
+const PID_KEY = "quiz-pid" + slot;
+let pid = idStore.get(PID_KEY);
+if (!pid) { pid = "p" + Math.random().toString(36).slice(2, 11); idStore.set(PID_KEY, pid); }
+
+let state = null, me = null, myScore = null, picked = null, pickedQ = -1, secTimer = null, lastKey = "";
+
+db.on("state", v => { state = v; render(); });
+db.on("players/" + pid, v => { me = v; render(); });
+db.on("scores/" + pid, v => { myScore = v; render(true); });
+
+function render(scoreOnly) {
+  $("#who").textContent = me ? me.name : QUIZ.title;
+  $("#myscore").textContent = myScore ? `${myScore.score} pts` : "";
+  if (!state) { app.innerHTML = waitScreen("Conectando…", ""); return; }
+  if (!me) { if (lastKey !== "join") { lastKey = "join"; renderJoin(); } return; }
+
+  const key = state.phase + ":" + state.q + ":" + (state.phase === "reveal" || state.phase === "ranking" || state.phase === "final" ? (myScore?.lastQ ?? "") + (myScore?.rank ?? "") : "");
+  if (key === lastKey) return;
+  if (scoreOnly && state.phase === "question") return;
+  lastKey = key;
+  clearInterval(secTimer);
+
+  const Q = QUESTIONS[state.q];
+  switch (state.phase) {
+    case "lobby": app.innerHTML = waitScreen(`¡Listo, ${esc(me.name)}!`, "Mirá la pantalla. El juego empieza en un momento."); break;
+    case "round": {
+      const r = QUIZ.rounds[Q.round];
+      app.innerHTML = `<div class="center rise"><div class="eyebrow">${esc(r.name)}</div><h1>${esc(r.title)}</h1><p class="muted">Preparate…</p></div>`;
+      break;
+    }
+    case "question": renderQuestion(Q); break;
+    case "reveal": renderReveal(Q); break;
+    case "ranking":
+      app.innerHTML = `<div class="center rise">
+        <div class="eyebrow">Ranking</div>
+        ${myScore?.rank ? `<div class="big">${myScore.rank}°</div><p class="muted">puesto · ${myScore.score} pts</p>` : `<p class="muted">Sumate en la próxima pregunta.</p>`}
+        <p class="muted" style="margin-top:12px">Mirá la pantalla</p><div class="dots"><i></i><i></i><i></i></div></div>`;
+      break;
+    case "final": renderFinal(); break;
+  }
+}
+
+function waitScreen(title, sub) {
+  return `<div class="center rise"><h2>${title}</h2><p class="muted">${sub}</p><div class="dots"><i></i><i></i><i></i></div></div>`;
+}
+
+function renderJoin() {
+  app.innerHTML = `
+    <form class="join rise" id="jf" autocomplete="off">
+      <div><div class="eyebrow">Bienvenido/a al</div><h1 style="margin-top:8px">${esc(QUIZ.title)}</h1></div>
+      <div class="field">
+        <label for="nm">Tu nombre</label>
+        <input id="nm" maxlength="20" placeholder="Ej: Cami" enterkeyhint="go" required>
+      </div>
+      <button class="btn" type="submit">Entrar</button>
+      <div class="err" id="err"></div>
+    </form>`;
+  const nm = $("#nm");
+  nm.value = slot ? "" : (store.get("quiz-name") || "");
+  $("#jf").onsubmit = async e => {
+    e.preventDefault();
+    const name = nm.value.trim().replace(/\s+/g, " ");
+    if (!name) { $("#err").textContent = "Escribí tu nombre para entrar."; return; }
+    store.set("quiz-name", name);
+    try { await db.set("players/" + pid, { name, at: db.now() }); }
+    catch { $("#err").textContent = "No pudimos conectarte. Probá de nuevo."; }
+  };
+}
+
+async function renderQuestion(Q) {
+  const q = state.q;
+  if (pickedQ !== q) { picked = null; pickedQ = q; }
+  // Si recargó la página, recuperamos su respuesta
+  if (picked === null) {
+    const prev = await db.get(`answers/${q}/${pid}`);
+    if (prev && Number.isInteger(prev.c)) picked = prev.c;
+  }
+  if (state.phase !== "question" || state.q !== q) return;
+  const long = Q.options.some(o => o.length > 40);
+  const r = QUIZ.rounds[Q.round];
+  app.innerHTML = `
+    <div class="qtop"><span class="eyebrow">${esc(r.name)} · ${q + 1}/${TOTAL}</span><span class="secs" id="secs">${Q.time}</span></div>
+    <div class="qtext">${esc(Q.text)}</div>
+    <div class="answers ${Q.images ? "imgs" : ""} ${picked !== null ? "locked" : ""}" id="answers">
+      ${Q.options.map((o, i) => `<button class="ans rise ${long ? "long" : ""} ${picked === i ? "picked" : ""}" data-i="${i}" style="animation-delay:${.05 * i}s">
+        ${Q.images ? `<img src="${esc(Q.images[i])}" alt=""><span class="letter">${LETTERS[i]}</span>` : `<span class="letter">${LETTERS[i]}</span><span>${esc(o)}</span>`}
+      </button>`).join("")}
+    </div>
+    <div class="sent" id="sent">${picked !== null ? "Respuesta enviada. Esperá a que termine el tiempo." : ""}</div>`;
+
+  app.querySelectorAll(".ans").forEach(b => b.onclick = async () => {
+    if (picked !== null) return;
+    picked = +b.dataset.i;
+    b.classList.add("picked");
+    $("#answers").classList.add("locked");
+    $("#sent").textContent = "Respuesta enviada. Esperá a que termine el tiempo.";
+    if (navigator.vibrate) navigator.vibrate(30);
+    try { await db.set(`answers/${q}/${pid}`, { c: picked, t: db.now() }); }
+    catch { picked = null; b.classList.remove("picked"); $("#answers").classList.remove("locked"); $("#sent").textContent = "No se envió. Tocá de nuevo."; }
+  });
+
+  const start = Date.now();
+  secTimer = setInterval(() => {
+    const left = Math.max(0, Q.time - Math.floor((Date.now() - start) / 1000));
+    const el = $("#secs"); if (el) el.textContent = left;
+    if (left <= 0) {
+      clearInterval(secTimer);
+      const a = $("#answers"); if (a) a.classList.add("locked");
+      if (picked === null) { const s = $("#sent"); if (s) s.textContent = "¡Se terminó el tiempo!"; }
+    }
+  }, 250);
+}
+
+function renderReveal(Q) {
+  const s = myScore && myScore.lastQ === state.q ? myScore : null;
+  const correctTxt = Q.images ? `Opción ${LETTERS[Q.correct]}` : Q.options[Q.correct];
+  let head;
+  if (!s) head = `<div class="mark no">…</div><h2>Calculando…</h2>`;
+  else if (s.lastOk) head = `<div class="mark ok">✓</div><h2>¡Correcto!</h2><span class="pill">+${s.lastPts} pts</span>`;
+  else if (!s.answered) head = `<div class="mark no">–</div><h2>No llegaste a responder</h2>`;
+  else head = `<div class="mark no">✕</div><h2>No era esa</h2>`;
+  app.innerHTML = `
+    <div class="center rise">
+      ${head}
+      ${s && !s.lastOk ? `<p class="muted">La correcta era:<br><b style="color:var(--light)">${esc(correctTxt)}</b></p>` : ""}
+      ${s ? `<p class="muted" style="margin-top:10px">Vas ${s.rank}° · ${s.score} pts</p>` : ""}
+    </div>`;
+}
+
+function renderFinal() {
+  const s = myScore || { score: 0, correct: 0 };
+  const lv = levelFor(s.correct || 0);
+  app.innerHTML = `
+    <div class="center rise" style="gap:18px">
+      <div class="eyebrow">Resultado final</div>
+      ${s.rank ? `<div class="big">${s.rank}°</div>` : ""}
+      <div class="stats">
+        <div><b>${s.score}</b><span>puntos</span></div>
+        <div><b>${s.correct || 0}/${TOTAL}</b><span>correctas</span></div>
+      </div>
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:10px">Tu nivel de conocimiento de la marca</div>
+        <div class="t">${esc(lv.title)}</div>
+        <div class="s">${esc(lv.text)}</div>
+      </div>
+      <p class="muted">¡Gracias por jugar!</p>
+    </div>`;
+}
+</script>
+</body>
+</html>

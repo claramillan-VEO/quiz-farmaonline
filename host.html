@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz Farmaonline · Pantalla</title>
+<link rel="stylesheet" href="styles.css">
+<script src="qrcode.js"></script>
+<style>
+  body { font-size: clamp(14px, 1.15vw, 22px); }
+  .screen { height: 100vh; height: 100dvh; overflow: hidden; }
+  .top {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 2.2vh 3vw; border-bottom: 1px solid var(--line); font-size: 15px;
+  }
+  .top .brand { font-weight: 700; letter-spacing: .02em; }
+  .top .right { display: flex; align-items: center; gap: 18px; }
+  .stage { flex: 1; display: flex; flex-direction: column; padding: 4vh 4vw 3vh; min-height: 0; }
+  .foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 4vw 4vh; }
+  .hint { font-size: 13px; color: var(--muted); }
+
+  /* Lobby */
+  .lobby { flex: 1; display: grid; grid-template-columns: 1.3fr 1fr; gap: 5vw; align-items: center; }
+  .lobby h1 { font-size: clamp(44px, 6.4vw, 128px); line-height: .95; font-weight: 800; letter-spacing: -.03em; }
+  .lobby .steps { margin-top: 4vh; font-size: clamp(18px, 1.7vw, 32px); line-height: 1.5; }
+  .lobby .url { font-weight: 700; word-break: break-all; }
+  .qr { background: var(--light); border-radius: 28px; padding: 28px; justify-self: end; width: min(34vw, 62vh); aspect-ratio: 1; }
+  
+  .players { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 3vh; max-height: 18vh; overflow: hidden; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-size: clamp(14px, 1.1vw, 20px); }
+  .count { font-size: clamp(28px, 3vw, 56px); font-weight: 800; }
+
+  /* Ronda */
+  .round { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .round .eyebrow { font-size: clamp(18px, 1.6vw, 30px); }
+  .round h2 { font-size: clamp(60px, 9vw, 180px); font-weight: 800; letter-spacing: -.04em; line-height: 1; margin-top: 2vh; }
+
+  /* Pregunta */
+  .qhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 4vw; }
+  .qtext { font-size: clamp(30px, 3.6vw, 72px); font-weight: 700; line-height: 1.08; letter-spacing: -.02em; max-width: 72vw; margin-top: 1.5vh; }
+  .timer { position: relative; width: clamp(80px, 8vw, 150px); aspect-ratio: 1; flex: none; }
+  .timer svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .timer .num { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(28px, 2.8vw, 54px); font-weight: 800; }
+  .opts { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6vw; margin-top: 5vh; align-content: end; }
+  .opt {
+    position: relative; border: 1.5px solid var(--line); border-radius: 22px;
+    padding: 2.4vw; display: flex; flex-direction: column; gap: 2vh;
+    background: var(--brand-2); transition: opacity .35s, background .35s, color .35s, border-color .35s;
+    min-height: 26vh; overflow: hidden;
+  }
+  .opt .row { display: flex; align-items: center; gap: 1vw; }
+  .opt .letter { font-size: clamp(16px, 1.4vw, 28px); }
+  .opt .otext { font-size: clamp(20px, 2.1vw, 42px); font-weight: 600; line-height: 1.2; }
+  .opts.long .otext { font-size: clamp(15px, 1.35vw, 27px); font-weight: 500; line-height: 1.35; }
+  .opt .oimg { border-radius: 14px; overflow: hidden; margin-top: auto; }
+  .opts.images .opt { min-height: 0; }
+  .opts.images .oimg { aspect-ratio: 1; align-self: center; width: auto; height: 34vh; }
+  .opts.images .oimg img { width: 100%; height: 100%; object-fit: cover; }
+  .opt .stat { margin-top: auto; display: flex; align-items: center; gap: 12px; font-size: clamp(16px, 1.4vw, 28px); font-weight: 700; }
+  .opt .bar { flex: 1; height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .opt .bar i { display: block; height: 100%; width: 0; background: currentColor; transition: width .8s cubic-bezier(.2, .8, .2, 1); }
+  .opt.correct { background: var(--light); color: var(--brand); border-color: var(--light); }
+  .opt.correct .bar { background: rgba(16, 24, 40, .15); }
+  .opt.wrong { opacity: .32; }
+  .opt .tick { position: absolute; top: 1.4vw; right: 1.6vw; font-size: clamp(22px, 2vw, 40px); font-weight: 800; }
+  .answered { font-size: clamp(18px, 1.5vw, 28px); }
+  .answered b { font-size: 1.4em; }
+
+  /* Ranking */
+  .rank h2, .final h2 { font-size: clamp(40px, 4.4vw, 88px); font-weight: 800; letter-spacing: -.03em; }
+  .rlist { margin-top: 4vh; display: flex; flex-direction: column; gap: 1.4vh; max-width: 70vw; }
+  .ritem {
+    display: grid; grid-template-columns: 3.2em 1fr auto; align-items: center;
+    border: 1px solid var(--line); border-radius: 18px; padding: 1.8vh 2vw;
+    font-size: clamp(20px, 1.9vw, 38px); background: var(--brand-2);
+  }
+  .ritem:first-child { background: var(--light); color: var(--brand); border-color: var(--light); }
+  .ritem .pos { font-weight: 800; }
+  .ritem .pname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ritem .pts { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  /* Final */
+  .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2vw; align-items: end; margin-top: 5vh; max-width: 80vw; }
+  .pod { text-align: center; }
+  .pod .pname { font-size: clamp(20px, 2vw, 40px); font-weight: 700; margin-bottom: 1.5vh; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pod .block { border-radius: 22px 22px 0 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; border: 1.5px solid var(--line); border-bottom: 0; background: var(--brand-2); }
+  .pod .block .n { font-size: clamp(40px, 4.6vw, 92px); font-weight: 800; line-height: 1; }
+  .pod .block .p { font-size: clamp(14px, 1.2vw, 24px); color: var(--muted); }
+  .pod.p1 .block { height: 34vh; background: var(--light); color: var(--brand); }
+  .pod.p1 .block .p { color: rgba(16,24,40,.6); }
+  .pod.p2 .block { height: 25vh; }
+  .pod.p3 .block { height: 18vh; }
+  .rest { margin-top: 3vh; color: var(--muted); font-size: clamp(14px, 1.2vw, 22px); }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="top">
+    <span class="brand" id="brand"></span>
+    <div class="right">
+      <span id="progress" class="muted"></span>
+      <span id="pcount" class="muted"></span>
+      <button class="btn-ghost" id="reset">Reiniciar juego</button>
+    </div>
+  </div>
+  <main class="stage" id="stage"></main>
+  <div class="foot">
+    <span class="hint">Avanzá con el botón, la barra espaciadora o la flecha →</span>
+    <button class="btn" id="next">Empezar</button>
+  </div>
+</div>
+
+<script type="module">
+import { db, QUIZ, QUESTIONS, TOTAL, LETTERS, esc, demoBanner } from "./core.js";
+
+const $ = s => document.querySelector(s);
+const stage = $("#stage"), nextBtn = $("#next");
+$("#brand").textContent = QUIZ.title;
+demoBanner();
+
+let state = null, players = {}, scores = {}, answers = {};
+let tick = null, answersOff = null, busy = false, closing = false;
+
+const playerUrl = (() => {
+  const u = new URL(location.href);
+  u.pathname = u.pathname.replace(/host(\.html)?$/, "");
+  u.search = ""; u.hash = "";
+  return u.href;
+})();
+
+// ---------- Sincronización ----------
+db.on("players", v => { players = v || {}; onPlayers(); });
+db.on("scores", v => { scores = v || {}; });
+db.on("state", v => {
+  const first = state === null;
+  state = v;
+  if (!state) return resetGame();
+  if (first) render();
+});
+
+function onPlayers() {
+  const n = Object.keys(players).length;
+  $("#pcount").textContent = n + (n === 1 ? " jugador" : " jugadores");
+  if (state?.phase === "lobby") renderLobbyPlayers();
+  if (state?.phase === "question") renderAnswered();
+}
+
+async function resetGame() {
+  clearInterval(tick);
+  await db.set("", {
+    state: { phase: "lobby", q: -1, gameId: Math.random().toString(36).slice(2, 10) }
+  });
+  state = await db.get("state");
+  players = {}; scores = {}; answers = {};
+  render();
+}
+
+async function setState(patch) {
+  state = { ...state, ...patch };
+  await db.set("state", { ...state, ...(patch.phase === "question" ? { startAt: db.now() } : {}) });
+}
+
+// ---------- Flujo ----------
+async function advance() {
+  if (busy || !state) return;
+  busy = true;
+  try {
+    const { phase, q } = state;
+    if (phase === "lobby") await goQuestionOrRound(0);
+    else if (phase === "round") await setState({ phase: "question" });
+    else if (phase === "question") await reveal();
+    else if (phase === "reveal") await setState({ phase: q === TOTAL - 1 ? "final" : "ranking" });
+    else if (phase === "ranking") await goQuestionOrRound(q + 1);
+    else return;
+    render();
+  } finally { busy = false; }
+}
+
+async function goQuestionOrRound(q) {
+  const Q = QUESTIONS[q];
+  await setState({ q, phase: Q.firstOfRound ? "round" : "question" });
+}
+
+async function reveal() {
+  clearInterval(tick);
+  const q = state.q, Q = QUESTIONS[q];
+  const st = await db.get("state");
+  const startAt = st.startAt || Date.now();
+  const ans = (await db.get("answers/" + q)) || {};
+  const sc = (await db.get("scores")) || {};
+  const limit = Q.time * 1000;
+  const dist = Q.options.map(() => 0);
+
+  for (const id of Object.keys(players)) {
+    const a = ans[id];
+    const prev = sc[id] || { score: 0, correct: 0 };
+    let ok = false, pts = 0;
+    if (a && Number.isInteger(a.c)) {
+      dist[a.c] = (dist[a.c] || 0) + 1;
+      ok = a.c === Q.correct;
+      if (ok) {
+        const frac = Math.min(1, Math.max(0, (a.t - startAt) / limit));
+        pts = Math.round(1000 - 500 * frac);
+      }
+    }
+    sc[id] = { score: (prev.score || 0) + pts, correct: (prev.correct || 0) + (ok ? 1 : 0), lastQ: q, lastOk: ok, lastPts: pts, answered: !!a };
+  }
+  // posiciones
+  Object.entries(sc).sort((x, y) => y[1].score - x[1].score).forEach(([id, s], i) => { s.rank = i + 1; });
+  await db.set("scores", sc);
+  scores = sc;
+  await setState({ phase: "reveal", dist, players: Object.keys(players).length });
+}
+
+// ---------- Render ----------
+function render() {
+  if (answersOff) { answersOff(); answersOff = null; }
+  clearInterval(tick);
+  closing = false;
+  const { phase, q } = state;
+  const Q = QUESTIONS[q];
+  $("#progress").textContent = q >= 0 && phase !== "final" ? `Pregunta ${q + 1} de ${TOTAL}` : "";
+  nextBtn.disabled = false;
+  nextBtn.textContent = {
+    lobby: "Empezar", round: "Ver pregunta", question: "Mostrar respuesta",
+    reveal: q === TOTAL - 1 ? "Ver resultados" : "Ver ranking", ranking: "Siguiente pregunta", final: "Fin"
+  }[phase];
+  if (phase === "final") nextBtn.disabled = true;
+
+  if (phase === "lobby") return renderLobby();
+  if (phase === "round") return renderRound(Q);
+  if (phase === "question") return renderQuestion(Q, false);
+  if (phase === "reveal") return renderQuestion(Q, true);
+  if (phase === "ranking") return renderRanking();
+  if (phase === "final") return renderFinal();
+}
+
+function renderLobby() {
+  stage.innerHTML = `
+    <div class="lobby rise">
+      <div>
+        <div class="eyebrow">Sumate al juego</div>
+        <h1>${esc(QUIZ.title)}</h1>
+        <div class="steps">
+          Escaneá el código con tu celular<br>
+          <span class="muted">o entrá a</span> <span class="url">${esc(playerUrl.replace(/^https?:\/\//, ""))}</span>
+        </div>
+        <div style="margin-top:4vh"><span class="count" id="lcount">0</span> <span class="muted">conectados</span></div>
+        <div class="players" id="lplayers"></div>
+      </div>
+      <div class="qr" id="qr"></div>
+    </div>`;
+  if (window.qrcode) {
+    const qr = qrcode(0, "M"); qr.addData(playerUrl); qr.make();
+    const n = qr.getModuleCount(); let d = "";
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (qr.isDark(y, x)) d += `M${x} ${y}h1v1h-1z`;
+    $("#qr").innerHTML = `<svg viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges" style="width:100%;height:100%"><path d="${d}" fill="#101828"/></svg>`;
+  }
+  renderLobbyPlayers();
+}
+
+function renderLobbyPlayers() {
+  const el = $("#lplayers"); if (!el) return;
+  const names = Object.values(players).map(p => p.name);
+  $("#lcount").textContent = names.length;
+  el.innerHTML = names.slice(-40).reverse().map(n => `<span class="chip">${esc(n)}</span>`).join("");
+}
+
+function renderRound(Q) {
+  const r = QUIZ.rounds[Q.round];
+  stage.innerHTML = `
+    <div class="round rise">
+      <div class="eyebrow">${esc(r.name)} de ${QUIZ.rounds.length}</div>
+      <h2>${esc(r.title)}</h2>
+    </div>`;
+}
+
+function renderQuestion(Q, revealed) {
+  const r = QUIZ.rounds[Q.round];
+  const long = Q.options.some(o => o.length > 40);
+  const dist = state.dist || [];
+  const totalAns = dist.reduce((a, b) => a + b, 0);
+  stage.innerHTML = `
+    <div class="qhead">
+      <div>
+        <div class="eyebrow">${esc(r.name)} · ${esc(r.title)}</div>
+        <div class="qtext ${revealed ? "" : "rise"}">${esc(Q.text)}</div>
+      </div>
+      ${revealed ? "" : `<div class="timer"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="rgba(236,236,237,.15)" stroke-width="7"/><circle id="ring" cx="50" cy="50" r="45" fill="none" stroke="#ECECED" stroke-width="7" stroke-linecap="round" stroke-dasharray="282.7" stroke-dashoffset="0"/></svg><div class="num" id="tnum">${Q.time}</div></div>`}
+    </div>
+    <div class="opts ${long ? "long" : ""} ${Q.images ? "images" : ""}">
+      ${Q.options.map((o, i) => {
+        const cls = revealed ? (i === Q.correct ? "correct" : "wrong") : "";
+        const n = dist[i] || 0, pct = totalAns ? Math.round(n / totalAns * 100) : 0;
+        return `<div class="opt ${revealed ? "" : "rise"} ${cls}" style="animation-delay:${.08 * i + .1}s">
+          ${revealed && i === Q.correct ? `<span class="tick">✓</span>` : ""}
+          <div class="row"><span class="letter">${LETTERS[i]}</span>${Q.images ? "" : `<span class="otext">${esc(o)}</span>`}</div>
+          ${Q.images ? `<div class="oimg"><img src="${esc(Q.images[i])}" alt="Opción ${LETTERS[i]}"></div>` : ""}
+          ${revealed ? `<div class="stat"><span class="bar"><i data-w="${pct}"></i></span><span>${n}</span></div>` : ""}
+        </div>`;
+      }).join("")}
+    </div>
+    <div class="answered" style="margin-top:3vh" id="answered"></div>`;
+
+  if (revealed) {
+    requestAnimationFrame(() => requestAnimationFrame(() =>
+      stage.querySelectorAll(".bar i").forEach(b => b.style.width = b.dataset.w + "%")));
+    const ok = dist[Q.correct] || 0;
+    $("#answered").innerHTML = `<b>${ok}</b> <span class="muted">de ${state.players || 0} acertaron</span>`;
+    return;
+  }
+
+  // Respuestas en vivo + timer
+  answers = {};
+  const qNow = state.q;
+  answersOff = db.on("answers/" + qNow, v => {
+    if (state.q !== qNow) return;
+    if (state.phase !== "question") return;
+    answers = v || {};
+    renderAnswered();
+  });
+  const start = Date.now(), dur = Q.time * 1000;
+  const ring = $("#ring"), tnum = $("#tnum");
+  tick = setInterval(() => {
+    const left = Math.max(0, dur - (Date.now() - start));
+    if (ring) ring.style.strokeDashoffset = 282.7 * (1 - left / dur);
+    if (tnum) tnum.textContent = Math.ceil(left / 1000);
+    if (left <= 0) closeQuestion(0);
+  }, 100);
+}
+
+function renderAnswered() {
+  const el = $("#answered"); if (!el || state.phase !== "question") return;
+  const ids = Object.keys(players);
+  const n = ids.filter(id => answers[id]).length;
+  el.innerHTML = `<b>${n}</b> <span class="muted">de ${ids.length} respondieron</span>`;
+  if (ids.length > 0 && n >= ids.length) closeQuestion(800);
+}
+
+function closeQuestion(delay) {
+  if (closing) return;
+  closing = true;
+  clearInterval(tick);
+  const q = state.q;
+  setTimeout(() => { if (state.phase === "question" && state.q === q) advance(); }, delay);
+}
+
+function sorted() {
+  return Object.entries(scores)
+    .filter(([id]) => players[id])
+    .map(([id, s]) => ({ name: players[id].name, ...s }))
+    .sort((a, b) => b.score - a.score);
+}
+
+function renderRanking() {
+  const top = sorted().slice(0, 5);
+  stage.innerHTML = `
+    <div class="rank">
+      <div class="eyebrow">Después de la pregunta ${state.q + 1}</div>
+      <h2 class="rise">Ranking</h2>
+      <div class="rlist">
+        ${top.map((p, i) => `<div class="ritem rise" style="animation-delay:${.07 * i}s">
+          <span class="pos">${i + 1}</span><span class="pname">${esc(p.name)}</span><span class="pts">${p.score}</span></div>`).join("")
+          || `<p class="muted">Todavía no hay puntajes.</p>`}
+      </div>
+    </div>`;
+}
+
+function renderFinal() {
+  const all = sorted();
+  const [a, b, c] = all;
+  const pod = (p, k) => p ? `<div class="pod p${k} rise" style="animation-delay:${{ 1: .5, 2: .25, 3: 0 }[k]}s">
+      <div class="pname">${esc(p.name)}</div>
+      <div class="block"><span class="n">${k}°</span><span class="p">${p.score} pts · ${p.correct}/${TOTAL}</span></div></div>` : `<div></div>`;
+  stage.innerHTML = `
+    <div class="final">
+      <div class="eyebrow">Resultados</div>
+      <h2 class="rise">¡Gracias por jugar!</h2>
+      <div class="podium">${pod(b, 2)}${pod(a, 1)}${pod(c, 3)}</div>
+      ${all.length > 3 ? `<div class="rest">${all.slice(3, 10).map((p, i) => `${i + 4}. ${esc(p.name)} (${p.score})`).join(" · ")}</div>` : ""}
+    </div>`;
+}
+
+// ---------- Controles ----------
+nextBtn.onclick = advance;
+document.addEventListener("keydown", e => {
+  if (["Space", "ArrowRight", "Enter", "PageDown"].includes(e.code)) { e.preventDefault(); advance(); }
+});
+let armed = false;
+$("#reset").onclick = () => {
+  const b = $("#reset");
+  if (!armed) { armed = true; b.textContent = "¿Seguro? Click de nuevo"; setTimeout(() => { armed = false; b.textContent = "Reiniciar juego"; }, 3000); return; }
+  armed = false; b.textContent = "Reiniciar juego"; resetGame();
+};
+</script>
+</body>
+</html>
